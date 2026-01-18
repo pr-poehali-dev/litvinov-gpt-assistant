@@ -10,7 +10,7 @@
       "expectedStatus": 200,
       "expectedBody": {
         "reply": "string",
-        "model": "gpt-4o-mini"
+        "model": "litvinov-smart-ai"
       },
       "bodyMatcher": "partial"
     },
