@@ -1,0 +1,31 @@
+{
+  "tests": [
+    {
+      "name": "Test chat endpoint with message",
+      "method": "POST",
+      "body": {
+        "message": "Привет! Как дела?",
+        "history": []
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "reply": "string",
+        "model": "gpt-4o-mini"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Test empty message validation",
+      "method": "POST",
+      "body": {
+        "message": "",
+        "history": []
+      },
+      "expectedStatus": 400,
+      "expectedBody": {
+        "error": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

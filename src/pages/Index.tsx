@@ -33,8 +33,9 @@ const Index = () => {
     }
   ]);
   const [inputValue, setInputValue] = useState('');
-  const [requestsUsed, setRequestsUsed] = useState(3);
+  const [requestsUsed, setRequestsUsed] = useState(0);
   const [currentSection, setCurrentSection] = useState('chat');
+  const [isLoading, setIsLoading] = useState(false);
 
   const chatHistoryData: ChatHistory[] = [
     { id: 1, title: 'Создание веб-сайта', date: '16 янв', preview: 'Как создать сайт на React...' },
@@ -42,8 +43,8 @@ const Index = () => {
     { id: 3, title: 'Планирование проекта', date: '14 янв', preview: 'Нужна помощь с планом...' }
   ];
 
-  const handleSendMessage = () => {
-    if (!inputValue.trim() || requestsUsed >= 10) return;
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || requestsUsed >= 10 || isLoading) return;
 
     const userMessage: Message = {
       id: messages.length + 1,
@@ -53,18 +54,53 @@ const Index = () => {
     };
 
     setMessages([...messages, userMessage]);
+    const currentInput = inputValue;
     setInputValue('');
-    setRequestsUsed(requestsUsed + 1);
+    setIsLoading(true);
 
-    setTimeout(() => {
-      const botMessage: Message = {
+    try {
+      const response = await fetch('https://functions.poehali.dev/b97cb280-e6f5-4d55-a641-3b1adc8edcf1', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: currentInput,
+          history: messages.slice(-10)
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.reply) {
+        const botMessage: Message = {
+          id: messages.length + 2,
+          text: data.reply,
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, botMessage]);
+        setRequestsUsed(requestsUsed + 1);
+      } else {
+        const errorMessage: Message = {
+          id: messages.length + 2,
+          text: data.error || 'Ошибка получения ответа. Проверьте настройки API ключа.',
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      const errorMessage: Message = {
         id: messages.length + 2,
-        text: 'Я обработал ваш запрос! В полной версии здесь будет интеграция с реальным ИИ. На бесплатном тарифе у вас ' + (10 - requestsUsed - 1) + ' запросов из 10.',
+        text: 'Ошибка соединения с сервером. Попробуйте позже.',
         sender: 'bot',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, botMessage]);
-    }, 1000);
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -202,6 +238,22 @@ const Index = () => {
                         </div>
                       </div>
                     ))}
+                    {isLoading && (
+                      <div className="flex gap-3 animate-fade-in">
+                        <Avatar className="w-8 h-8">
+                          <AvatarFallback className="bg-gradient-to-br from-purple-600 to-pink-600 text-white">
+                            LG
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="bg-white border border-purple-100 p-4 rounded-2xl shadow-sm">
+                          <div className="flex gap-1">
+                            <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                            <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </ScrollArea>
               </CardContent>
@@ -217,10 +269,10 @@ const Index = () => {
                   />
                   <Button
                     onClick={handleSendMessage}
-                    disabled={!inputValue.trim() || requestsUsed >= 10}
+                    disabled={!inputValue.trim() || requestsUsed >= 10 || isLoading}
                     className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                   >
-                    <Icon name="Send" size={18} />
+                    {isLoading ? <Icon name="Loader2" size={18} className="animate-spin" /> : <Icon name="Send" size={18} />}
                   </Button>
                 </div>
               </CardFooter>
